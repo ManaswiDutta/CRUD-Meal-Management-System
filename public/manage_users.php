@@ -64,7 +64,7 @@ $result = $conn->query($sql);
                         <td><?= htmlspecialchars($user['email']) ?></td>
                         <td><?= htmlspecialchars($user['role_name']) ?></td>
                         <td>
-                            <a href="create_user.php?edit_id=<?= $user['id'] ?>"><button>Edit</button></a>
+                            <a href="edit_user.php?edit_id=<?= $user['id'] ?>"><button>Edit</button></a>
                             <a href="manage_users.php?delete_id=<?= $user['id'] ?>" onclick="return confirm('Are you sure?')"><button>Delete</button></a>
                         </td>
                     </tr>

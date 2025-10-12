@@ -12,7 +12,7 @@ include '../backend/controllers/login_backend.php';
 </head>
 <body>
   <div class="login-container">
-    <h2>Admin Login</h2>
+    <h2>Login</h2>
     <?php if (isset($error)) echo "<p style='color:red;'>$error</p>"; ?>
 
     <form method="POST" action="">
