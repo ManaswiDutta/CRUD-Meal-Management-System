@@ -49,9 +49,8 @@ $result = $conn->query($sql);
                         <td><?= htmlspecialchars($row['username']) ?></td>
                         <td><?= htmlspecialchars($row['email']) ?></td>
                         <td>
-                            <a href="edit_user.php?edit_id=<?= $row['id'] ?>">
-                                <button>Edit</button>
-                            </a>
+                            <a href="view_user.php?user_id=<?= $row['id'] ?>"><button>View</button></a>
+                            <a href="edit_user.php?edit_id=<?= $row['id'] ?>"><button>Edit</button></a>
                         </td>
                     </tr>
                 <?php endwhile; ?>
