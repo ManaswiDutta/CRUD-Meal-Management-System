@@ -5,7 +5,7 @@ include '../backend/config/db_connect.php';
 
 // Only allow admin or superintendent
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [2, 3])) {
-    header("Location: login.php");
+    header("Location: blocked.php");
     exit;
 }
 

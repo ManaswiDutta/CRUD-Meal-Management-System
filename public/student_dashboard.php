@@ -5,7 +5,7 @@ include '../backend/config/db_connect.php';
 
 // Only allow students
 if (!isset($_SESSION['user_id']) || $_SESSION['role_id'] != 1) {
-    header("Location: login.php");
+    header("Location: blocked.php");
     exit;
 }
 

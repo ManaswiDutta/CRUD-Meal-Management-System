@@ -7,14 +7,14 @@ $role = isset($_SESSION['role_id']) ? (int)$_SESSION['role_id'] : null;
 $user_session_id = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
 
 if (!isset($user_session_id)) {
-    header("Location: login.php");
+    header("Location: blocked.php");
     exit;
 }
 
 // Students can only edit their own profile via edit_id param
 $requested_edit_id = isset($_GET['edit_id']) ? (int)$_GET['edit_id'] : null;
 if (!in_array($role, [2,3]) && !($role == 1 && $requested_edit_id !== null && $user_session_id === $requested_edit_id)) {
-    header("Location: login.php");
+    header("Location: blocked.php");
     exit;
 }
 

@@ -4,7 +4,7 @@ include '../backend/config/db_connect.php';
 
 // Protect page: only admins
 if (!isset($_SESSION['user_id']) || $_SESSION['role_id'] != 3) {
-    header("Location: login.php");
+    header("Location: blocked.php");
     exit;
 }
 
