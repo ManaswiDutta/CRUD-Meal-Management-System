@@ -2,80 +2,111 @@
 session_start();
 include '../backend/config/db_connect.php';
 
-// Protect page: only admins
-if (!isset($_SESSION['user_id']) || $_SESSION['role_id'] != 3) {
+// Access control
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role_id'], [2, 3])) {
     header("Location: blocked.php");
     exit;
 }
 
-// Handle delete action
-if (isset($_GET['delete_id'])) {
-    $delete_id = (int)$_GET['delete_id'];
+$is_admin = $_SESSION['role_id'] == 3;
+$is_super = $_SESSION['role_id'] == 2;
 
-    // Prevent admin from deleting themselves
-    if ($delete_id == $_SESSION['user_id']) {
-        $error = "You cannot delete your own account.";
-    } else {
-        $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
-        $stmt->bind_param("i", $delete_id);
-        if ($stmt->execute()) {
-            $success = "User deleted successfully.";
-        } else {
-            $error = "Error deleting user: " . $conn->error;
-        }
-    }
+// Build query based on role
+if ($is_admin) {
+    $sql = "SELECT u.id, u.username, u.email, r.name AS role_name
+            FROM users u
+            JOIN roles r ON u.role_id = r.id
+            ORDER BY u.id ASC";
+} else {
+    // Super can only see students
+    $sql = "SELECT u.id, u.username, u.email, r.name AS role_name
+            FROM users u
+            JOIN roles r ON u.role_id = r.id
+            WHERE u.role_id = 1
+            ORDER BY u.id ASC";
 }
 
-// Fetch all users
-$sql = "SELECT u.id, u.username, u.email, r.name AS role_name
-        FROM users u
-        JOIN roles r ON u.role_id = r.id
-        ORDER BY u.id ASC";
 $result = $conn->query($sql);
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Manage Users</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+  <meta charset="UTF-8">
+  <title>Manage Users</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
-    <div class="table-container">
-        <h2>Manage Users</h2>
+<header>
+  <h1><?= $is_admin ? "Admin Dashboard" : "Superintendent Dashboard" ?></h1>
+  <nav>
+    <a href="<?= $is_admin ? 'admin_dashboard.php' : 'super_dashboard.php' ?>">Home</a>
+    <a href="manage_users.php" class="active">Manage Users</a>
+    <a href="logout.php" class="btn">Logout</a>
+  </nav>
+</header>
 
-        <?php if (isset($error)) echo "<p style='color:red;'>$error</p>"; ?>
-        <?php if (isset($success)) echo "<p style='color:green;'>$success</p>"; ?>
+<div class="container">
 
-        <table border="1" cellpadding="10">
-            <tr>
-                <th>ID</th>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Actions</th>
-            </tr>
-            <?php if ($result->num_rows > 0): ?>
-                <?php while($user = $result->fetch_assoc()): ?>
-                    <tr>
-                        <td><?= $user['id'] ?></td>
-                        <td><?= htmlspecialchars($user['username']) ?></td>
-                        <td><?= htmlspecialchars($user['email']) ?></td>
-                        <td><?= htmlspecialchars($user['role_name']) ?></td>
-                        <td>
-                            <a href="view_user.php?user_id=<?= $user['id'] ?>"><button>View</button></a>
-                            <a href="edit_user.php?edit_id=<?= $user['id'] ?>"><button>Edit</button></a>
-                            <a href="manage_users.php?delete_id=<?= $user['id'] ?>" onclick="return confirm('Are you sure?')"><button>Delete</button></a>
-                        </td>
-                    </tr>
-                <?php endwhile; ?>
-            <?php else: ?>
-                <tr><td colspan="5">No users found.</td></tr>
-            <?php endif; ?>
-        </table>
+  <div class="dashboard-actions">
+    <h2>Manage Users</h2>
+    <div style="display:flex; gap:10px; align-items:center;">
+        <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search users...">
+        <button id="searchButton"><i class="fa fa-search"></i></button>
+        </div>
 
-        <p><a href="admin_dashboard.php">← Back to Dashboard</a></p>
+        <?php if ($is_admin): ?>
+        <a href="create_user.php" class="btn"><i class="fa fa-plus"></i> Create User</a>
+        <?php endif; ?>
     </div>
+    </div>
+
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody">
+        <?php if ($result->num_rows > 0): ?>
+          <?php while ($row = $result->fetch_assoc()): ?>
+            <tr>
+              <td><?= $row['id'] ?></td>
+              <td><?= htmlspecialchars($row['username']) ?></td>
+              <td><?= htmlspecialchars($row['email']) ?></td>
+              <td><?= htmlspecialchars($row['role_name']) ?></td>
+              <td>
+                <a href="view_user.php?user_id=<?= $row['id'] ?>" class="btn" style="background:#10b981;"><i class="fa fa-eye"></i> View</a>
+                <a href="edit_user.php?edit_id=<?= $row['id'] ?>" class="btn"><i class="fa fa-edit"></i> Edit</a>
+                <?php if ($is_admin): ?>
+                  <a href="delete_user.php?id=<?= $row['id'] ?>" class="btn" style="background:#c0392b;"><i class="fa fa-trash"></i> Delete</a>
+                <?php endif; ?>
+              </td>
+            </tr>
+          <?php endwhile; ?>
+        <?php else: ?>
+          <tr><td colspan="5" style="text-align:center;">No users found.</td></tr>
+        <?php endif; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<script src="assets/js/search.js"></script>
+
+
+<footer>
+  &copy; <?= date('Y'); ?> Ramakrishna Mission Vidyamandira | Orion Portal
+</footer>
 </body>
 </html>
