@@ -23,8 +23,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role_id'] != 2) {
   <header>
     <h1>Superintendent Dashboard</h1>
     <nav>
-      <a href="super_dashboard.php">Home</a>
-      <a href="manage_users.php">Manage Students</a>
+      <a href="super_dashboard.php">Home </a>
+      <a href="manage_users.php"> Manage Students </a>
+      <a href="meal_count.php"> Meal Count </a>
       <a href="logout.php" class="btn">Logout</a>
     </nav>
   </header>
@@ -51,7 +52,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role_id'] != 2) {
       <div class="card">
         <h3>Meal Preferences</h3>
         <p>Access and adjust student meal preferences for lunch and dinner.</p>
-        <a href="meal_overview.php" class="btn">Open</a>
+        <a href="meal_count.php" class="btn">Open</a>
       </div>
 
       <div class="card">

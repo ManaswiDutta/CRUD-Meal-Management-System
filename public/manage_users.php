@@ -106,7 +106,7 @@ $result = $conn->query($sql);
 
 
 <footer>
-  &copy; <?= date('Y'); ?> Ramakrishna Mission Vidyamandira | Orion Portal
+  &copy; <?= date('Y'); ?> Ramakrishna Mission Vidyamandira 
 </footer>
 </body>
 </html>
