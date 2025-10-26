@@ -37,14 +37,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = trim($_POST['password']);
 
     if ($edit_mode) {
-        // Update existing user
         if (!empty($password)) {
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
             $sql = "UPDATE users SET username=?, email=?, role_id=?, password_hash=? WHERE id=?";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("ssisi", $username, $email, $role_id, $hashed_password, $edit_id);
         } else {
-            // If no password entered, keep old one
             $sql = "UPDATE users SET username=?, email=?, role_id=? WHERE id=?";
             $stmt = $conn->prepare($sql);
             $stmt->bind_param("ssii", $username, $email, $role_id, $edit_id);
@@ -58,7 +56,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
     } else {
-        // Create new user
         if (!empty($password)) {
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
             $sql = "INSERT INTO users (username, email, password_hash, role_id) VALUES (?, ?, ?, ?)";
@@ -66,7 +63,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param("sssi", $username, $email, $hashed_password, $role_id);
             if ($stmt->execute()) {
                 $success = "User created successfully! Redirecting...";
-                $username = $email = "";
                 header("Refresh: 2; url=manage_users.php");
             } else {
                 $error = "Error creating user: " . $conn->error;
@@ -82,38 +78,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $edit_mode ? "Edit User" : "Create User" ?></title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
-    <div class="form-container">
-        <h2><?= $edit_mode ? "Edit User" : "Create New User" ?></h2>
+  <header>
+    <h1><?= $edit_mode ? "Edit User" : "Create New User" ?></h1>
+    <nav>
+      <a href="admin_dashboard.php">Home</a>
+      <a href="manage_users.php">Manage Users</a>
+      <a href="logout.php" class="btn">Logout</a>
+    </nav>
+  </header>
 
-        <?php if (isset($error)) echo "<p style='color:red;'>$error</p>"; ?>
-        <?php if (isset($success)) echo "<p style='color:green;'>$success</p>"; ?>
+  <div class="container">
+    <div class="form-card">
+      <h2><?= $edit_mode ? "Edit User Details" : "Create New User" ?></h2>
 
-        <form method="POST" action="">
-            <label>Username:</label><br>
-            <input type="text" name="username" value="<?= htmlspecialchars($username) ?>" required><br><br>
+      <?php if (isset($error)): ?>
+        <p class="error-msg"><?= $error; ?></p>
+      <?php endif; ?>
 
-            <label>Email:</label><br>
-            <input type="email" name="email" value="<?= htmlspecialchars($email) ?>" required><br><br>
+      <?php if (isset($success)): ?>
+        <p class="success-msg"><?= $success; ?></p>
+      <?php endif; ?>
 
-            <label>Password <?= $edit_mode ? "(leave blank to keep current)" : "" ?>:</label><br>
-            <input type="password" name="password"><br><br>
+      <form method="POST" action="">
+        <div class="form-group">
+          <label>Username</label>
+          <input type="text" name="username" value="<?= htmlspecialchars($username) ?>" required>
+        </div>
 
-            <label>Role:</label><br>
-            <select name="role_id" required>
-                <option value="">-- Select Role --</option>
-                <option value="1" <?= ($role_id == 1) ? "selected" : "" ?>>Student</option>
-                <option value="2" <?= ($role_id == 2) ? "selected" : "" ?>>Superintendent</option>
-                <option value="3" <?= ($role_id == 3) ? "selected" : "" ?>>Admin</option>
-            </select><br><br>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" value="<?= htmlspecialchars($email) ?>" required>
+        </div>
 
-            <button type="submit"><?= "Create User" ?></button>
-        </form>
+        <div class="form-group">
+          <label>Password <?= $edit_mode ? "(leave blank to keep current)" : "" ?></label>
+          <input type="password" name="password">
+        </div>
 
-        <p><a href="admin_dashboard.php">← Back to Dashboard</a></p>
+        <div class="form-group">
+          <label>Role</label>
+          <select name="role_id" required>
+            <option value="">-- Select Role --</option>
+            <option value="1" <?= ($role_id == 1) ? "selected" : "" ?>>Student</option>
+            <option value="2" <?= ($role_id == 2) ? "selected" : "" ?>>Superintendent</option>
+            <option value="3" <?= ($role_id == 3) ? "selected" : "" ?>>Admin</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn primary">
+          <?= $edit_mode ? "Update User" : "Create User" ?>
+        </button>
+        <a href="manage_users.php" class="btn secondary">Back</a>
+      </form>
     </div>
+  </div>
+
+  <footer>
+    &copy; <?= date('Y'); ?> Ramakrishna Mission Vidyamandira
+  </footer>
 </body>
 </html>

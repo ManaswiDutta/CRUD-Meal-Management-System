@@ -35,10 +35,10 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role_id'] != 2) {
       <h2>Welcome, <?= htmlspecialchars($_SESSION['username']); ?> 👋</h2>
 
       <!-- Search box -->
-      <div class="search-box">
+      <!-- <div class="search-box">
         <input type="text" id="searchInput" placeholder="Search students...">
         <button id="searchButton"><i class="fa fa-search"></i></button>
-      </div>
+      </div> -->
     </div>
 
     <!-- Cards Section -->
@@ -56,9 +56,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role_id'] != 2) {
       </div>
 
       <div class="card">
-        <h3>Reports</h3>
-        <p>Generate student and meal reports with filters by department, year, and preference.</p>
-        <a href="reports.php" class="btn">Open</a>
+        <h3>Leave Management</h3>
+        <p>manage student leaves.</p>
+        <a href="manage_leave.php" class="btn">Open</a>
       </div>
     </div>
   </div>

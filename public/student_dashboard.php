@@ -115,9 +115,9 @@ $meal = $meal_result->fetch_assoc();
 <body>
 <header>
   <div class="container" style="display:flex;align-items:center;justify-content:space-between;">
-    <h1 style="margin:0;font-size:1.05rem;">Reynold Hostel</h1>
+    <h1 style="margin:0;font-size:1.05rem;">Reynold System</h1>
     <nav>
-      <a href="student_dashboard.php" style="margin-right:12px;">Dashboard</a>
+      <a href="notifications.php" style="margin-right:12px;">Notifications</a>
       <a href="edit_user.php?edit_id=<?= (int)$user_id ?>" style="margin-right:12px;">Edit</a>
 
       <!-- replaced anchor-wrapped button with a POST form to ensure logout reliably clears session -->
@@ -140,6 +140,7 @@ $meal = $meal_result->fetch_assoc();
 
         <div class="actions">
             <a href="edit_user.php?edit_id=<?= (int)$user_id ?>"><button class="btn secondary">Edit My Info</button></a>
+            <a href="leave_apply.php"><button class="btn" style="background: linear-gradient(90deg,#f28c28,#c46516);">Apply for Leave</button></a>
         </div>
     </div>
 
