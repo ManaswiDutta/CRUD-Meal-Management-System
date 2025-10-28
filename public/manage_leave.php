@@ -91,6 +91,8 @@ $result = $conn->query($query);
     </style>
 </head>
 <body>
+    <?php include 'includes/super_header.php'; ?>
+
 <div class="container">
     <div class="top-bar">
         <h2>Manage Leave Requests</h2>

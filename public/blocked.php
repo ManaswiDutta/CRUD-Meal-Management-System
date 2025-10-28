@@ -46,11 +46,15 @@ if (isset($_SESSION['role_id'])) {
     <p>Uh uh uh... You can't come here!</p>
 
     <!-- Use your own clip or a local file (e.g. "assets/uhuhuh.mp4") -->
-    <video controls loop >
+    <!-- <video controls loop >
         <source src="assets/media/videos/Ah ah ah! You didn't say the magic word! (Jurassic Park - Dennis Nedry).mp4" type="video/mp4">
-        <!-- or a GIF if you prefer -->
-        <!-- <img src="assets/uhuhuh.gif" alt="Hacker animation"> -->
-    </video>
+    </video> -->
+
+            <!-- or a GIF if you prefer -->
+
+
+    <img src="assets/media/images/cat police.jpeg" alt="you cant escape">
+
 
     <p>Redirecting in 5 seconds...</p>
 </body>
