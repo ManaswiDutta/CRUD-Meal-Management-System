@@ -34,12 +34,7 @@ if (isset($_SESSION['role_id'])) {
             font-size: 2rem;
         }
     </style>
-    <script>
-        // Auto redirect after 5 seconds
-        setTimeout(() => {
-            window.location.href = "<?= $redirect_page ?>";
-        }, 6500);
-    </script>
+    <script src="assets/js/countdown.js"></script>
 </head>
 <body>
     <h1>Access Denied!</h1>
@@ -53,6 +48,6 @@ if (isset($_SESSION['role_id'])) {
     <img src="assets/media/images/cat police.jpeg" alt="you cant escape">
 
 
-    <p>Redirecting in 5 seconds...</p>
+    <p class="redirect-text">Redirecting in <span id="redirect-count">5</span> seconds...</p>
 </body>
 </html>

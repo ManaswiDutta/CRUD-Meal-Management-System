@@ -10,6 +10,7 @@
         <h1>Welcome to the CRUD App!</h1>
         <p>Manage users easily and securely.</p>
         <a href="login.php"><button>Go to Login</button></a>
+        <a href="teacher_login.php"><button>Teacher Login</button></a>
     </div>
 </body>
 </html>
