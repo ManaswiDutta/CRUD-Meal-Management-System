@@ -85,7 +85,7 @@ tr:last-child td { border-bottom:0; }
 </style>
 </head>
 <body>
-<?php include 'includes/super_header.php'; ?>
+<?php include 'includes/headers.php'; ?>
 <div class="container">
   <h1>Meal Count for <?= date('F j, Y', strtotime($tomorrow)) ?></h1>
   <p class="note">Meals marked <span style="color:#ef4444;font-weight:600;">red</span> are excluded due to leave.</p>

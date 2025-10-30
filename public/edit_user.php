@@ -155,21 +155,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $edit_mode) {
 </head>
 
 <body>
-  <header>
-    <h1><?= $is_student ? "Edit Your Profile" : "Edit User" ?></h1>
-    <nav>
-      <?php if ($is_admin): ?>
-        <a href="admin_dashboard.php">Dashboard</a>
-        <a href="manage_users.php">Manage Users</a>
-      <?php elseif ($is_super): ?>
-        <a href="super_dashboard.php">Dashboard</a>
-        <a href="manage_users.php">Manage Students</a>
-      <?php elseif ($is_student): ?>
-        <a href="student_dashboard.php">Dashboard</a>
-      <?php endif; ?>
-      <a href="logout.php" class="btn">Logout</a>
-    </nav>
-  </header>
+<?php include 'includes/headers.php'; ?>
+
 
   <div class="container">
     <div class="form-card">

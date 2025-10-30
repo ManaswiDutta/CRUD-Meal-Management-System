@@ -20,15 +20,8 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role_id'] != 2) {
 </head>
 
 <body>
-  <header>
-    <h1>Superintendent Dashboard</h1>
-    <nav>
-      <a href="super_dashboard.php">Home </a>
-      <a href="manage_users.php"> Manage Students </a>
-      <a href="meal_count.php"> Meal Count </a>
-      <a href="logout.php" class="btn">Logout</a>
-    </nav>
-  </header>
+<?php include 'includes/super_header.php'; ?>
+
 
   <div class="container dashboard">
     <div class="dashboard-actions">

@@ -85,14 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 
 <body>
-  <header>
-    <h1><?= $edit_mode ? "Edit User" : "Create New User" ?></h1>
-    <nav>
-      <a href="admin_dashboard.php">Home</a>
-      <a href="manage_users.php">Manage Users</a>
-      <a href="logout.php" class="btn">Logout</a>
-    </nav>
-  </header>
+<?php include 'includes/admin_header.php'; ?>
+
 
   <div class="container">
     <div class="form-card">

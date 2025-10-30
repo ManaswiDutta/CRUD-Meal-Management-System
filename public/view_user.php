@@ -148,6 +148,9 @@ $role_name = $role_names[(int)$user['role_id']] ?? 'Unknown';
 </head>
 
 <body>
+
+<?php include 'includes/headers.php'; ?>
+
   <div class="container">
     <div class="header">
       <div class="profile">

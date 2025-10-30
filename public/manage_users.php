@@ -39,14 +39,8 @@ $result = $conn->query($sql);
 </head>
 
 <body>
-<header>
-  <h1><?= $is_admin ? "Admin Dashboard" : "Superintendent Dashboard" ?></h1>
-  <nav>
-    <a href="<?= $is_admin ? 'admin_dashboard.php' : 'super_dashboard.php' ?>">Home</a>
-    <a href="manage_users.php" class="active">Manage Users</a>
-    <a href="logout.php" class="btn">Logout</a>
-  </nav>
-</header>
+<?php include 'includes/headers.php'; ?>
+
 
 <div class="container">
 

@@ -96,6 +96,9 @@ $conn->query("UPDATE notifications SET is_read = 1 WHERE user_id = $user_id");
     </style>
 </head>
 <body>
+
+<?php include 'includes/headers.php'; ?>
+
 <div class="page-container">
     <h2>
         Notifications

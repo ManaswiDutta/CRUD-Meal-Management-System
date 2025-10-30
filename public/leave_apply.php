@@ -45,6 +45,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Apply for Leave</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
+        header .container {
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
         .form-container {
             max-width: 700px;
             margin: 40px auto;
@@ -84,6 +92,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
+
+<?php include 'includes/student_header.php'; ?>
+
     <div class="form-container">
         <h2>Apply for Leave</h2>
         <?php if ($success): ?><p class="msg success"><?= $success ?></p><?php endif; ?>

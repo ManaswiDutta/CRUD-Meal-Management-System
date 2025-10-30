@@ -38,19 +38,16 @@ if (isset($_SESSION['role_id'])) {
         // Auto redirect after 5 seconds
         setTimeout(() => {
             window.location.href = "<?= $redirect_page ?>";
-        }, 9400);
+        }, 6500);
     </script>
 </head>
 <body>
     <h1>Access Denied!</h1>
     <p>Uh uh uh... You can't come here!</p>
 
-    <!-- Use your own clip or a local file (e.g. "assets/uhuhuh.mp4") -->
     <!-- <video controls loop >
         <source src="assets/media/videos/Ah ah ah! You didn't say the magic word! (Jurassic Park - Dennis Nedry).mp4" type="video/mp4">
     </video> -->
-
-            <!-- or a GIF if you prefer -->
 
 
     <img src="assets/media/images/cat police.jpeg" alt="you cant escape">
