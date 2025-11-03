@@ -122,7 +122,6 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role_id'])) {
         <button type="submit" class="btn" style="width:100%;">Sign In</button>
 
         <div class="login-footer">
-          <!-- registration removed as requested -->
         </div>
       </form>
     </div>

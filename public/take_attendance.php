@@ -104,34 +104,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if ($message): ?><?= $message ?><?php endif; ?>
 
     <form method="POST" style="margin-top:18px;">
-      <table class="student-list">
-        <thead>
-          <tr>
-            <th>Student Name</th>
-            <th style="width:120px; text-align:center;">Present</th>
-          </tr>
-        </thead>
-        <tbody>
-          <?php if ($students): ?>
-            <?php foreach ($students as $s): ?>
-              <tr>
-                <td><?= htmlspecialchars($s['username']) ?></td>
-                <td style="text-align:center;">
-                  <input type="checkbox" class="checkbox" name="present[]" value="<?= (int)$s['id'] ?>" checked>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <tr><td colspan="2" style="text-align:center; padding:16px;">No students found for this class.</td></tr>
-          <?php endif; ?>
-        </tbody>
-      </table>
+    <table class="student-list">
+      <thead>
+        <tr>
+          <th>Roll No</th>
+          <th>Student Name</th>
+          <th style="width:120px; text-align:center;">Present</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php if ($students): ?>
+          <?php
+            // Fetch roll number from student_details
+            foreach ($students as $s):
+                $sid = $s['id'];
+                $rollRes = $conn->query("SELECT roll_no FROM student_details WHERE student_id = $sid");
+                $roll = ($rollRes && $rollRes->num_rows > 0) ? $rollRes->fetch_assoc()['roll_no'] : '-';
+          ?>
+            <tr>
+              <td><?= htmlspecialchars($roll) ?></td>
+              <td><?= htmlspecialchars($s['username']) ?></td>
+              <td style="text-align:center;">
+                <input type="checkbox" class="checkbox" name="present[]" value="<?= (int)$s['id'] ?>" checked>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <tr><td colspan="3" style="text-align:center; padding:16px;">No students found for this class.</td></tr>
+        <?php endif; ?>
+      </tbody>
+    </table>
 
-      <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button type="submit" class="btn">Submit Attendance</button>
-        <a href="teacher_dashboard.php" class="btn ghost" style="background:transparent; color:var(--saffron-dark); border:1px solid var(--border);">Cancel</a>
-      </div>
-    </form>
+  <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
+    <button type="submit" class="btn">Submit Attendance</button>
+    <a href="teacher_dashboard.php" class="btn ghost" style="background:transparent; color:var(--saffron-dark); border:1px solid var(--border);">Cancel</a>
+  </div>
+</form>
+
   </div>
 </main>
 

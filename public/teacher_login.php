@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <style>
         body {
             display:flex; align-items:center; justify-content:center;
-            height:100vh; background:linear-gradient(135deg,#f4a261,#e76f51);
+            height:100vh; background:linear-gradient(135deg,#f28c28,#f28c28);
             font-family:'Poppins',sans-serif;
         }
         .login-box {
@@ -68,10 +68,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         button {
             width:100%; padding:10px; border:none; border-radius:10px;
-            background:#e76f51; color:#fff; font-weight:600; font-size:16px;
+            background:#f28c28; color:#fff; font-weight:600; font-size:16px;
             cursor:pointer; transition:0.3s;
         }
-        button:hover { background:#f4a261; }
+        button:hover { background:#c46516; }
         .error { color:#d00000; font-size:14px; text-align:center; margin-bottom:12px; }
     </style>
 </head>
@@ -79,7 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="login-box">
     <h2>Teacher Login</h2>
     <?php if ($error): ?><p class="error"><?= htmlspecialchars($error) ?></p><?php endif; ?>
-    <form method="POST" action="">
+    <!-- <form method="POST" action="">
         <label for="subject">Select Subject:</label>
         <select name="subject" id="subject" required>
             <option value="">-- Choose Subject --</option>
@@ -96,6 +96,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="password" name="password" id="password" required>
 
         <button type="submit">Login</button>
+    </form> -->
+
+    <form method="POST" action="">
+        <label for="subject">Select Subject:</label>
+        <select name="subject" id="subject" required>
+            <option value="">-- Choose Subject --</option>
+            <option value="Physics">Physics</option>
+            <option value="Chemistry">Chemistry</option>
+            <option value="English">English</option>
+            <option value="Math">Math</option>
+        </select>
+
+        <label for="username">Username:</label>
+        <input type="text" name="username" id="username" required value="<?= htmlspecialchars($_POST['username'] ?? '') ?>">
+
+        <label for="password">Password</label>
+        <input id="password" type="password" name="password" required>
+
+
+
+        <button type="submit" class="btn" style="width:100%;">Sign In</button>
+
+        <div class="login-footer">
+        </div>
     </form>
 </div>
 </body>
