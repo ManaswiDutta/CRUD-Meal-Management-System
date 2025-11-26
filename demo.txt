@@ -1,0 +1,585 @@
+this is the file
+
+<?php
+session_start();
+include '../backend/config/db_connect_v.php';
+
+// Access control
+if (!isset($_SESSION['teacher_id'])) {
+    header("Location: teacher_login.php");
+    exit;
+}
+
+$teacher_id = $_SESSION['teacher_id'];
+$subject = $_SESSION['subject'] ?? 'General';
+$message = "";
+$today = date('Y-m-d');
+
+// Fetch students enrolled in this subject with leave status
+$stmt = $conn->prepare("
+    SELECT u.id, 
+           CONCAT(u.first_name, ' ', u.last_name) as full_name,
+           sp.roll_number,
+           CASE 
+               WHEN EXISTS (
+                   SELECT 1 FROM leave_requests lr 
+                   WHERE lr.student_user_id = u.id 
+                   AND lr.is_active = 1
+                   AND lr.final_status IN ('approved', 'super_approved')
+               ) THEN 'on_leave'
+               ELSE 'normal'
+           END as leave_status
+    FROM users u
+    JOIN student_profiles sp ON u.id = sp.user_id
+    JOIN student_class sc ON u.id = sc.student_id
+    WHERE sc.subject = ?
+    ORDER BY sp.roll_number ASC
+");
+$stmt->bind_param("s", $subject);
+$stmt->execute();
+$students = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $date = date('Y-m-d');
+    $present_ids = isset($_POST['present']) ? (array)$_POST['present'] : [];
+    $absent_ids = [];
+
+    foreach ($students as $s) {
+        if (!in_array($s['id'], $present_ids)) {
+            $absent_ids[] = $s['id'];
+        }
+    }
+
+    $present_str = implode(',', $present_ids);
+    $absent_str = implode(',', $absent_ids);
+
+    $stmt = $conn->prepare("INSERT INTO attendance (teacher_id, subject, date, present_ids, absent_ids) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param("issss", $teacher_id, $subject, $date, $present_str, $absent_str);
+    if ($stmt->execute()) {
+        $message = "<p class='success'>✅ Attendance saved for " . htmlspecialchars($subject) . ".</p>";
+    } else {
+        $message = "<p class='error'>❌ Database error: " . htmlspecialchars($conn->error) . "</p>";
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Take Attendance – <?= htmlspecialchars($subject) ?></title>
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+  .attendance-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    margin-top: 20px;
+  }
+  
+  .attendance-table th {
+    background: linear-gradient(135deg, #ff9933 0%, #ff7711 100%);
+    color: white;
+    padding: 16px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  
+  .attendance-table td {
+    padding: 14px 16px;
+    text-align: center;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.95rem;
+  }
+  
+  .attendance-table tbody tr {
+    transition: background-color 0.2s ease;
+  }
+  
+  .attendance-table tbody tr:hover {
+    background-color: #fafafa;
+  }
+  
+  .attendance-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  
+  .attendance-table tbody tr.on-leave {
+    background-color: #fff3cd;
+  }
+  
+  .attendance-table tbody tr.on-leave:hover {
+    background-color: #ffe69c;
+  }
+  
+  .toggle-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 700;
+    color: white;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .present { 
+    background: linear-gradient(135deg, #10b981 0%, #03ee16ff 100%);
+  }
+  
+  .absent { 
+    background: linear-gradient(135deg, #ef4444 0%, #f50202ff 100%);
+  }
+  
+  .toggle-btn:hover { 
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  
+  .toggle-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  
+  .toggle-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none !important;
+  }
+  
+  .status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .status-normal {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+  
+  .status-leave {
+    background-color: #fef3c7;
+    color: #92400e;
+  }
+  
+  .date-info {
+    background: #f8f9fa;
+    padding: 12px 20px;
+    border-radius: 8px;
+    display: inline-block;
+    margin-bottom: 10px;
+    font-weight: 500;
+    color: #495057;
+  }
+</style>
+<script>
+function toggleStatus(btn) {
+  const hidden = btn.nextElementSibling;
+  if (btn.classList.contains('present')) {
+    btn.classList.remove('present');
+    btn.classList.add('absent');
+    btn.textContent = 'A';
+    hidden.disabled = true; // Disable input so it won't be submitted
+  } else {
+    btn.classList.remove('absent');
+    btn.classList.add('present');
+    btn.textContent = 'P';
+    hidden.disabled = false; // Enable input so it will be submitted
+  }
+}
+</script>
+</head>
+<body>
+<?php include 'includes/teacher_header.php'; ?>
+
+<div class="container">
+  <h2>Take Attendance – <?= htmlspecialchars($subject) ?></h2>
+  <div class="date-info">📅 Date: <?= date('d M Y') ?></div>
+
+  <?= $message ?>
+
+  <form method="POST">
+    <table class="attendance-table">
+      <thead>
+        <tr>
+          <th>Roll No</th>
+          <th>Name</th>
+          <th>Status</th>
+          <th>Attendance</th>
+        </tr>
+      </thead>
+      <tbody>
+      <?php if ($students): ?>
+        <?php foreach ($students as $s): ?>
+          <tr class="<?= $s['leave_status'] === 'on_leave' ? 'on-leave' : '' ?>">
+            <td><?= htmlspecialchars($s['roll_number']) ?></td>
+            <td><?= htmlspecialchars($s['full_name']) ?></td>
+            <td>
+              <?php if ($s['leave_status'] === 'on_leave'): ?>
+                <span class="status-badge status-leave">🏠 At Home</span>
+              <?php else: ?>
+                <span class="status-badge status-normal">✓ Normal</span>
+              <?php endif; ?>
+            </td>
+            <td>
+              <?php if ($s['leave_status'] === 'on_leave'): ?>
+                <button type="button" class="toggle-btn absent" disabled>A</button>
+                <input type="hidden" name="present[]" value="<?= $s['id'] ?>" disabled>
+              <?php else: ?>
+                <button type="button" class="toggle-btn present" onclick="toggleStatus(this)">P</button>
+                <input type="hidden" name="present[]" value="<?= $s['id'] ?>">
+              <?php endif; ?>
+            </td>
+          </tr>
+        <?php endforeach; ?>
+      <?php else: ?>
+        <tr><td colspan="4">No students found for this class.</td></tr>
+      <?php endif; ?>
+      </tbody>
+    </table>
+    <br>
+    <button type="submit" class="btn">Submit Attendance</button>
+  </form>
+</div>
+
+<footer>
+  &copy; <?= date('Y') ?> Ramakrishna Mission Vidyamandira
+</footer>
+</body>
+</html>
+
+and this is the database
+
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: Nov 05, 2025 at 12:11 PM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Database: `vidyamandira`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_profiles`
+--
+
+CREATE TABLE `admin_profiles` (
+  `user_id` int(11) NOT NULL,
+  `employee_number` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `department` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `designation` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `managing_department_id` int(11) DEFAULT NULL COMMENT 'FK to departments.id, if this admin is an HOD for that dept',
+  `phone` varchar(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `photo` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'File path for the user''s profile picture',
+  `extra_data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `id` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `attendance`
+--
+
+CREATE TABLE `attendance` (
+  `id` int(11) NOT NULL,
+  `teacher_id` int(11) NOT NULL,
+  `subject` varchar(100) NOT NULL,
+  `date` date NOT NULL,
+  `present_ids` text DEFAULT NULL,
+  `absent_ids` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `departments`
+--
+
+CREATE TABLE `departments` (
+  `id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `abbr` varchar(10) DEFAULT NULL COMMENT 'Abbreviation for the department, e.g., PHSA',
+  `hod_user_id` int(11) DEFAULT NULL COMMENT 'FK to users.id for the HOD of this department',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `leave_requests`
+--
+
+CREATE TABLE `leave_requests` (
+  `id` int(11) NOT NULL,
+  `student_user_id` int(11) NOT NULL,
+  `departure_datetime` datetime NOT NULL,
+  `return_datetime` datetime DEFAULT NULL COMMENT 'Can be NULL if arrival is unknown.',
+  `actual_arrival_datetime` datetime DEFAULT NULL,
+  `is_arrival_unknown` tinyint(1) NOT NULL DEFAULT 0,
+  `reason` text NOT NULL,
+  `leave_type` enum('general','medical','emergency') NOT NULL DEFAULT 'general',
+  `superintendent_approval_status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  `superintendent_approver_id` int(11) DEFAULT NULL,
+  `superintendent_action_at` datetime DEFAULT NULL,
+  `superintendent_remarks` text DEFAULT NULL,
+  `hod_approval_status` enum('pending','approved','rejected','not_required') NOT NULL DEFAULT 'pending',
+  `hod_approver_id` int(11) DEFAULT NULL,
+  `hod_action_at` datetime DEFAULT NULL,
+  `hod_remarks` text DEFAULT NULL,
+  `final_status` enum('pending','approved','rejected','pending_super_override','cancelled_by_student','super_approved') NOT NULL DEFAULT 'pending',
+  `is_active` tinyint(1) NOT NULL DEFAULT 1 COMMENT 'TRUE until rejected, cancelled, or student returns.',
+  `student_returned_at` datetime DEFAULT NULL COMMENT 'Superintendent marks when student physically returns.',
+  `superintendent_return_verified` tinyint(1) NOT NULL DEFAULT 0,
+  `superintendent_verified_return_at` datetime DEFAULT NULL,
+  `lunch_before_departure` tinyint(1) NOT NULL DEFAULT 0,
+  `dinner_before_departure` tinyint(1) NOT NULL DEFAULT 0,
+  `lunch_after_return` tinyint(1) NOT NULL DEFAULT 0,
+  `dinner_after_return` tinyint(1) NOT NULL DEFAULT 0,
+  `original_leave_request_id` int(11) DEFAULT NULL COMMENT 'FK to self, if this is a modification',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `student_class`
+--
+
+CREATE TABLE `student_class` (
+  `id` int(11) NOT NULL,
+  `student_id` int(11) NOT NULL,
+  `subject` varchar(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `student_profiles`
+--
+
+CREATE TABLE `student_profiles` (
+  `user_id` int(11) NOT NULL,
+  `phone_number` varchar(15) DEFAULT NULL,
+  `whatsapp_number` varchar(15) DEFAULT NULL,
+  `guardian_name` varchar(100) DEFAULT NULL,
+  `guardian_phone_number` varchar(15) DEFAULT NULL,
+  `aadhar_number` char(15) DEFAULT NULL,
+  `photo` varchar(255) DEFAULT NULL,
+  `batch_year` varchar(5) DEFAULT NULL,
+  `roll_number` varchar(50) DEFAULT NULL COMMENT 'Student college roll number',
+  `department_id` int(11) DEFAULT NULL,
+  `hostel_id` int(11) DEFAULT NULL,
+  `pin_code` varchar(10) DEFAULT NULL,
+  `district` varchar(100) DEFAULT NULL,
+  `state` varchar(100) DEFAULT NULL,
+  `residence` varchar(50) DEFAULT NULL,
+  `religion` varchar(50) DEFAULT NULL,
+  `caste` varchar(50) DEFAULT NULL,
+  `physically_handicapped` tinyint(1) DEFAULT NULL,
+  `reason_for_ph` varchar(255) DEFAULT NULL,
+  `board_admission` varchar(100) DEFAULT NULL,
+  `former_institution` varchar(255) DEFAULT NULL,
+  `record` text DEFAULT NULL,
+  `course` varchar(255) DEFAULT NULL,
+  `date_of_admission` date DEFAULT NULL,
+  `date_of_birth` date DEFAULT NULL,
+  `nationality` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL,
+  `username` varchar(50) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `first_name` varchar(100) DEFAULT NULL,
+  `last_name` varchar(100) DEFAULT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `role_id` int(11) NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `is_present` tinyint(1) NOT NULL DEFAULT 1,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `last_login_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `admin_profiles`
+--
+ALTER TABLE `admin_profiles`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `employee_number` (`employee_number`),
+  ADD KEY `fk_admin_managing_department` (`managing_department_id`);
+
+--
+-- Indexes for table `attendance`
+--
+ALTER TABLE `attendance`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `teacher_id` (`teacher_id`);
+
+--
+-- Indexes for table `departments`
+--
+ALTER TABLE `departments`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `name` (`name`),
+  ADD UNIQUE KEY `abbr` (`abbr`),
+  ADD KEY `hod_user_id` (`hod_user_id`);
+
+--
+-- Indexes for table `leave_requests`
+--
+ALTER TABLE `leave_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `student_user_id` (`student_user_id`),
+  ADD KEY `superintendent_approver_id` (`superintendent_approver_id`),
+  ADD KEY `hod_approver_id` (`hod_approver_id`),
+  ADD KEY `fk_leave_original_request` (`original_leave_request_id`);
+
+--
+-- Indexes for table `student_class`
+--
+ALTER TABLE `student_class`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `student_id` (`student_id`);
+
+--
+-- Indexes for table `student_profiles`
+--
+ALTER TABLE `student_profiles`
+  ADD PRIMARY KEY (`user_id`),
+  ADD KEY `fk_student_department` (`department_id`),
+  ADD KEY `fk_student_hostel` (`hostel_id`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `username` (`username`),
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `role_id` (`role_id`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `admin_profiles`
+--
+ALTER TABLE `admin_profiles`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `attendance`
+--
+ALTER TABLE `attendance`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `departments`
+--
+ALTER TABLE `departments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `leave_requests`
+--
+ALTER TABLE `leave_requests`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `student_class`
+--
+ALTER TABLE `student_class`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `admin_profiles`
+--
+ALTER TABLE `admin_profiles`
+  ADD CONSTRAINT `fk_admin_managing_department` FOREIGN KEY (`managing_department_id`) REFERENCES `departments` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `attendance`
+--
+ALTER TABLE `attendance`
+  ADD CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`teacher_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `departments`
+--
+ALTER TABLE `departments`
+  ADD CONSTRAINT `departments_ibfk_1` FOREIGN KEY (`hod_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `student_class`
+--
+ALTER TABLE `student_class`
+  ADD CONSTRAINT `student_class_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+
+
+now i want the default to be a if the student is currently on leave
+
+also add another column after name which shows normal if he is not on leave and shows leave if he is on leave

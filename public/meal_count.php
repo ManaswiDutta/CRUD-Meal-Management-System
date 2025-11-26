@@ -86,6 +86,30 @@ tr:last-child td { border-bottom:0; }
 </head>
 <body>
 <?php include 'includes/headers.php'; ?>
+<?php
+// Check if a record for tomorrow already exists
+$tomorrow = date('Y-m-d', strtotime('+1 day'));
+$check = $conn->prepare("SELECT * FROM meal_summary WHERE date = ?");
+$check->bind_param("s", $tomorrow);
+$check->execute();
+$existing_summary = $check->get_result()->fetch_assoc();
+
+// Handle "Send to Mess" button
+if (isset($_POST['send_to_mess'])) {
+    if (!$existing_summary) {
+        $stmt = $conn->prepare("
+            INSERT INTO meal_summary (date, lunch_veg, lunch_nonveg, dinner1_veg, dinner1_nonveg, dinner2_veg, dinner2_nonveg, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'sent')
+        ");
+        $stmt->bind_param("siiiiii", $tomorrow, $veg, $non, $d1veg, $d1non, $d2veg, $d2non);
+        $stmt->execute();
+        echo "<p class='success' style='margin:10px 0;'>✅ Meal summary for tomorrow has been sent to the mess!</p>";
+    } else {
+        echo "<p class='error' style='margin:10px 0;'>⚠️ Already sent to mess for tomorrow.</p>";
+    }
+}
+?>
+
 <div class="container">
   <h1>Meal Count for <?= date('F j, Y', strtotime($tomorrow)) ?></h1>
   <p class="note">Meals marked <span style="color:#ef4444;font-weight:600;">red</span> are excluded due to leave.</p>
@@ -144,6 +168,15 @@ tr:last-child td { border-bottom:0; }
       ?>
     </tbody>
   </table>
+
+  <form method="POST" style="text-align:right; margin-bottom:15px;">
+      <?php if (!$existing_summary): ?>
+          <button type="submit" name="send_to_mess" class="btn">Send to Mess</button>
+      <?php else: ?>
+          <button type="button" class="btn" disabled>✅ Already Sent</button>
+      <?php endif; ?>
+  </form>
+
 
   <div class="summary">
     <div class="summary-card">

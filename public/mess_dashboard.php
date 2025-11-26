@@ -1,149 +1,151 @@
 <?php
+session_start();
 include '../backend/config/db_connect.php';
 
-// Default date (today) or navigate with ?date=YYYY-MM-DD
-$today = date('Y-m-d');
-$date = isset($_GET['date']) ? $_GET['date'] : $today;
+// Date navigation setup
+$selected_date = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
 
-// Fetch meal summary for that date
-$stmt = $conn->prepare("SELECT * FROM meal_summary WHERE meal_date = ?");
-$stmt->bind_param("s", $date);
+// Fetch the record for the selected date
+$stmt = $conn->prepare("SELECT * FROM meal_summary WHERE date = ?");
+$stmt->bind_param("s", $selected_date);
 $stmt->execute();
 $result = $stmt->get_result();
-$meal = $result->fetch_assoc();
+$data = $result->fetch_assoc();
 
-$prev_date = date('Y-m-d', strtotime($date . ' -1 day'));
-$next_date = date('Y-m-d', strtotime($date . ' +1 day'));
+$has_data = $data ? true : false;
+
+// Date helpers
+$yesterday = date('Y-m-d', strtotime($selected_date . ' -1 day'));
+$tomorrow = date('Y-m-d', strtotime($selected_date . ' +1 day'));
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Mess Dashboard | Reynold</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    .date-nav {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
-      margin-bottom: 24px;
+    .nav-row {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px;
     }
-    .date-nav a {
-      color: var(--saffron-dark);
-      font-size: 1.3rem;
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
+    .nav-btn {
+      background: var(--saffron-dark);
+      color: white;
+      border: none;
+      border-radius: 8px;
       padding: 8px 14px;
+      cursor: pointer;
+      font-weight: 600;
       text-decoration: none;
-      transition: 0.2s;
     }
-    .date-nav a:hover {
-      background: var(--saffron);
-      color: #fff;
-      transform: translateY(-2px);
-    }
-    .summary-box {
-      background: var(--card);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 30px;
-      text-align: center;
-    }
-    .summary-box h2 {
-      color: var(--saffron-dark);
-      margin-bottom: 18px;
-      font-family: 'Merriweather', serif;
-    }
-    .meal-grid {
+    .nav-btn:hover { background: var(--saffron); }
+
+    .summary-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
       gap: 18px;
+      margin-top: 20px;
     }
-    .meal-card {
-      background: #fffaf3;
-      border: 1px solid var(--border);
+    .summary-card {
+      background: var(--card);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       padding: 18px;
       text-align: center;
-      transition: 0.2s;
-    }
-    .meal-card:hover { transform: translateY(-3px); }
-    .meal-card h3 {
-      color: var(--saffron-dark);
-      font-size: 1.1rem;
-      margin-bottom: 6px;
-    }
-    .meal-card p {
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: var(--text);
-    }
-    .no-record {
-      text-align: center;
-      background: #fff6ea;
-      color: #b55;
-      padding: 20px;
-      border-radius: var(--radius);
       border: 1px solid var(--border);
-      margin-top: 16px;
+    }
+    .summary-card h3 {
+      color: var(--saffron-dark);
+      margin-bottom: 8px;
+    }
+    .summary-card .count {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #222;
+    }
+    .pending-box {
+      text-align: center;
+      background: #fff7ed;
+      border: 1px solid #f28c28;
+      color: #c46516;
+      padding: 14px;
+      border-radius: 10px;
+      font-weight: 600;
+      box-shadow: var(--shadow);
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1> Mess Dashboard</h1>
-    <nav>
-      <a href="meal_count.php"><i class="fa fa-utensils"></i> Meal Count</a>
-      <a href="super_dashboard.php"><i class="fa fa-arrow-left"></i> Back</a>
-    </nav>
-  </header>
 
-  <main class="container">
-    <div class="date-nav">
-      <a href="?date=<?= $prev_date ?>"><i class="fa fa-chevron-left"></i></a>
-      <h2 style="color:var(--saffron-dark); margin:0;">
-        <?= date('l, d M Y', strtotime($date)) ?>
-      </h2>
-      <a href="?date=<?= $next_date ?>"><i class="fa fa-chevron-right"></i></a>
+<header>
+  <h1>Mess Dashboard</h1>
+  <nav>
+    <a href="super_dashboard.php">Super Dashboard</a>
+    <a href="meal_count.php">Meal Count</a>
+  </nav>
+</header>
+
+<div class="container">
+  <div class="nav-row">
+    <a href="?date=<?= $yesterday ?>" class="nav-btn"><i class="fa fa-arrow-left"></i> Previous</a>
+    <h2 style="margin:0; color:var(--saffron-dark); font-family:'Merriweather', serif;">
+      <?= date('l, d M Y', strtotime($selected_date)) ?>
+    </h2>
+    <a href="?date=<?= $tomorrow ?>" class="nav-btn">Next <i class="fa fa-arrow-right"></i></a>
+  </div>
+
+  <?php if (!$has_data): ?>
+    <div class="pending-box">
+      ⚠️ Meal count pending approval for this date.<br>
+      Please check back once it’s sent by the Superintendent.
+    </div>
+  <?php else: ?>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <h3>Lunch veg</h3>
+        <div class="count"><?= (int)$data['lunch_veg'] ?></div>
+      </div>
+      <div class="summary-card">
+        <h3>Lunch Fish</h3>
+        <div class="count"><?= (int)$data['lunch_nonveg'] ?></div>
+      </div>
+      <div class="summary-card">
+        <h3>Dinner veg</h3>
+        <div class="count"><?= (int)$data['dinner1_veg'] ?></div>
+      </div>
+      <div class="summary-card">
+        <h3>Dinner egg</h3>
+        <div class="count"><?= (int)$data['dinner1_nonveg'] ?></div>
+      </div>
+      <div class="summary-card">
+        <h3>Dinner rice</h3>
+        <div class="count"><?= (int)$data['dinner2_veg'] ?></div>
+      </div>
+      <div class="summary-card">
+        <h3>Dinner roti</h3>
+        <div class="count"><?= (int)$data['dinner2_nonveg'] ?></div>
+      </div>
     </div>
 
-    <?php if ($meal): ?>
-      <div class="summary-box">
-        <h2>Meal Summary</h2>
-        <div class="meal-grid">
-          <div class="meal-card">
-            <h3>Veg Lunch</h3>
-            <p><?= (int)$meal['veg_lunch'] ?></p>
-          </div>
-          <div class="meal-card">
-            <h3>Non-Veg Lunch</h3>
-            <p><?= (int)$meal['nonveg_lunch'] ?></p>
-          </div>
-          <div class="meal-card">
-            <h3>Veg Dinner</h3>
-            <p><?= (int)$meal['veg_dinner'] ?></p>
-          </div>
-          <div class="meal-card">
-            <h3>Non-Veg Dinner</h3>
-            <p><?= (int)$meal['nonveg_dinner'] ?></p>
-          </div>
-        </div>
-      </div>
-    <?php else: ?>
-      <div class="no-record">
-        <i class="fa fa-exclamation-circle"></i> No meal data found for this date.<br>
-        The super may not have approved it yet.
-      </div>
-    <?php endif; ?>
-  </main>
+    <div style="margin-top:20px; text-align:center;">
+      <p>Status: 
+        <strong style="color:<?= ($data['status'] == 'sent') ? 'green' : 'orange' ?>">
+          <?= ucfirst($data['status']) ?>
+        </strong>
+      </p>
+      <p style="font-size:0.9rem; color:#666;">
+        Recorded on <?= date('d M Y, h:i A', strtotime($data['created_at'])) ?>
+      </p>
+    </div>
+  <?php endif; ?>
+</div>
 
-  <footer>
-    &copy; <?= date('Y') ?> Ramakrishna Mission Vidyamandira
-  </footer>
+<footer>
+  &copy; <?= date('Y') ?> Ramakrishna Mission Vidyamandira
+</footer>
+
 </body>
 </html>

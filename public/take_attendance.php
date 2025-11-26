@@ -1,33 +1,41 @@
 <?php
 session_start();
-include '../backend/config/db_connect.php';
+include '../backend/config/db_connect_v.php';
 
-// Only allow logged-in teachers
+// Access control
 if (!isset($_SESSION['teacher_id'])) {
     header("Location: teacher_login.php");
     exit;
 }
 
 $teacher_id = $_SESSION['teacher_id'];
-$subject = $_SESSION['subject'] ?? 'Subject';
+
+// Get teacher info
+$stmt = $conn->prepare("SELECT name, subject FROM teacher_account WHERE id = ?");
+$stmt->bind_param("i", $teacher_id);
+$stmt->execute();
+$teacher = $stmt->get_result()->fetch_assoc();
+$teacher_name = $teacher['name'];
+$subject = strtolower($teacher['subject']);
 $message = "";
 
-// Fetch students enrolled in this subject from student_class table
-// Note: keep the column access safe by using backticks in the SQL if subject name is a column
-$col = preg_replace('/[^a-zA-Z0-9_]/', '', $subject); // basic sanitization for column name
-$sql = "SELECT u.id, u.username
-        FROM users u
-        JOIN student_class sc ON u.id = sc.student_id
-        WHERE sc.`$col` = 1
-        ORDER BY u.username ASC";
-$stmt = $conn->prepare($sql);
-if ($stmt) {
-    $stmt->execute();
-    $students = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-} else {
-    $students = [];
-    $message = "<p class='error'>Database error: " . htmlspecialchars($conn->error) . "</p>";
+// Valid subjects
+$valid_subjects = ['physics', 'chemistry', 'english', 'math'];
+if (!in_array($subject, $valid_subjects)) {
+    die("<p class='error'>Invalid subject configuration for teacher.</p>");
 }
+
+// Fetch students
+$sql = "
+    SELECT u.id, u.username, sd.roll_no , u.first_name, u.last_name
+    FROM users u
+    JOIN student_class sc ON u.id = sc.student_id
+    JOIN student_details sd ON u.id = sd.student_id
+    WHERE sc.`$subject` = 1
+    ORDER BY sd.roll_no ASC
+";
+$res = $conn->query($sql);
+$students = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -44,17 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $present_str = implode(',', $present_ids);
     $absent_str = implode(',', $absent_ids);
 
-    $stmt = $conn->prepare("INSERT INTO attendance (teacher_id, date, subject, present_ids, absent_ids) VALUES (?, ?, ?, ?, ?)");
-    if ($stmt) {
-        $stmt->bind_param("issss", $teacher_id, $date, $subject, $present_str, $absent_str);
-        if ($stmt->execute()) {
-            $message = "<p class='success'>✅ Attendance recorded successfully for " . htmlspecialchars($subject) . "!</p>";
-        } else {
-            $message = "<p class='error'>❌ Error saving attendance: " . htmlspecialchars($conn->error) . "</p>";
-        }
-        $stmt->close();
+    $stmt = $conn->prepare("INSERT INTO attendance (teacher_id, subject, date, present_ids, absent_ids) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param("issss", $teacher_id, $subject, $date, $present_str, $absent_str);
+    if ($stmt->execute()) {
+        $message = "<p class='success'>✅ Attendance recorded successfully for today!</p>";
     } else {
-        $message = "<p class='error'>❌ Error preparing statement: " . htmlspecialchars($conn->error) . "</p>";
+        $message = "<p class='error'>❌ Error: " . htmlspecialchars($conn->error) . "</p>";
     }
 }
 ?>
@@ -62,90 +65,130 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Take Attendance — <?= htmlspecialchars($subject) ?></title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Take Attendance — <?= htmlspecialchars(ucfirst($subject)) ?></title>
     <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-      /* small overrides to match dashboards */
-      .teacher-header {
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        gap:12px;
-      }
-      .teacher-header .brand {
-        display:flex; align-items:center; gap:12px;
-      }
-      .teacher-header .logo {
-        width:46px; height:46px; border-radius:10px;
-        display:flex; align-items:center; justify-content:center;
-        color:#fff; font-weight:800; background: linear-gradient(135deg,var(--saffron),var(--saffron-dark));
-      }
-      .student-list th { background: var(--saffron-dark); color:#fff; }
-      .checkbox { transform: scale(1.1); margin-left:6px; }
+        .attendance-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #ffffff !important;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.25s;
+            outline: none;
+        }
+        /* Force colors and prevent other rules (from global CSS) overriding them */
+        .attendance-btn.present-btn {
+            background: #00b35a !important;
+        }
+        .attendance-btn.absent-btn {
+            background: #e53935 !important;
+        }
+
+        /* Prevent color change on hover (and remove transform if you want fully static)
+           The rules use !important to override any global `.btn:hover` or similar selectors. */
+        .attendance-btn.present-btn:hover {
+            background: #00b35a !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        .attendance-btn.absent-btn:hover {
+            background: #e53935 !important;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        .attendance-btn:hover {
+            transform: none !important;
+            box-shadow: none !important;
+        }
     </style>
 </head>
 <body>
-<?php include 'includes/teacher_header.php'; ?>
 
-<main class="container">
-  <div class="card">
-    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-      <div>
-        <h2 style="margin:0 0 6px 0; font-family:'Merriweather', serif; color:var(--saffron-dark);">Take Attendance — <?= htmlspecialchars($subject) ?></h2>
-        <p style="color:var(--muted); margin:0;">Date: <?= date('d M Y') ?></p>
-      </div>
-      <div>
-        <a href="teacher_dashboard.php" class="btn" style="margin-right:8px;">Back</a>
-      </div>
+<header>
+    <h1>Teacher Panel</h1>
+    <nav>
+        <a href="teacher_dashboard.php">Dashboard</a>
+        <a href="take_attendance.php">Take Attendance</a>
+        <a href="view_attendance.php">View Records</a>
+        <a href="logout_teacher.php">Logout</a>
+    </nav>
+</header>
+
+<div class="container">
+    <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+            <div>
+                <h2>Take Attendance — <?= ucfirst($subject) ?></h2>
+                <p style="color:var(--muted);margin:0;">Date: <?= date('d M Y') ?></p>
+            </div>
+            <a href="teacher_dashboard.php" class="btn">Back</a>
+        </div>
+
+        <?= $message ?>
+
+        <form method="POST" id="attendanceForm" style="margin-top:16px;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Roll No</th>
+                        <th>Student Name</th>
+                        <th style="text-align:center;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if ($students): ?>
+                        <?php foreach ($students as $s): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($s['roll_no']) ?></td>
+                                <td><?= htmlspecialchars($s['first_name'] . " " . $s['last_name']) ?></td>
+                                <td style="text-align:center;">
+                                    <input type="checkbox" name="present[]" value="<?= (int)$s['id'] ?>" id="chk_<?= $s['id'] ?>" checked hidden>
+                                    <button type="button" class="attendance-btn present-btn" data-id="<?= $s['id'] ?>" onclick="toggleStatus(this)">P</button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr><td colspan="3" style="text-align:center;">No students found.</td></tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+
+            <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+                <button type="submit" class="btn">Submit Attendance</button>
+                <a href="teacher_dashboard.php" class="btn" style="background:transparent;color:var(--saffron-dark);border:1px solid var(--border);">Cancel</a>
+            </div>
+        </form>
     </div>
+</div>
 
-    <?php if ($message): ?><?= $message ?><?php endif; ?>
+<script>
+function toggleStatus(btn) {
+    const id = btn.getAttribute('data-id');
+    const checkbox = document.getElementById('chk_' + id);
+    const isPresent = checkbox.checked;
 
-    <form method="POST" style="margin-top:18px;">
-    <table class="student-list">
-      <thead>
-        <tr>
-          <th>Roll No</th>
-          <th>Student Name</th>
-          <th style="width:120px; text-align:center;">Present</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php if ($students): ?>
-          <?php
-            // Fetch roll number from student_details
-            foreach ($students as $s):
-                $sid = $s['id'];
-                $rollRes = $conn->query("SELECT roll_no FROM student_details WHERE student_id = $sid");
-                $roll = ($rollRes && $rollRes->num_rows > 0) ? $rollRes->fetch_assoc()['roll_no'] : '-';
-          ?>
-            <tr>
-              <td><?= htmlspecialchars($roll) ?></td>
-              <td><?= htmlspecialchars($s['username']) ?></td>
-              <td style="text-align:center;">
-                <input type="checkbox" class="checkbox" name="present[]" value="<?= (int)$s['id'] ?>" checked>
-              </td>
-            </tr>
-          <?php endforeach; ?>
-        <?php else: ?>
-          <tr><td colspan="3" style="text-align:center; padding:16px;">No students found for this class.</td></tr>
-        <?php endif; ?>
-      </tbody>
-    </table>
-
-  <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap;">
-    <button type="submit" class="btn">Submit Attendance</button>
-    <a href="teacher_dashboard.php" class="btn ghost" style="background:transparent; color:var(--saffron-dark); border:1px solid var(--border);">Cancel</a>
-  </div>
-</form>
-
-  </div>
-</main>
+    if (isPresent) {
+        // Change to Absent
+        checkbox.checked = false;
+        btn.textContent = 'A';
+        btn.classList.remove('present-btn');
+        btn.classList.add('absent-btn');
+    } else {
+        // Change to Present
+        checkbox.checked = true;
+        btn.textContent = 'P';
+        btn.classList.remove('absent-btn');
+        btn.classList.add('present-btn');
+    }
+}
+</script>
 
 <footer>
-  &copy; <?= date('Y') ?> Ramakrishna Mission Vidyamandira
+    &copy; <?= date('Y') ?> Ramakrishna Mission Vidyamandira
 </footer>
 </body>
 </html>
